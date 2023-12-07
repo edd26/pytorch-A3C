@@ -42,7 +42,7 @@ class Net(nn.Module):
     def forward(self, x):
         a1 = F.relu6(self.a1(x))
         mu = 2 * F.tanh(self.mu(a1))
-        sigma = F.softplus(self.sigma(a1)) + 0.001      # avoid 0
+        sigma = F.softplus(self.sigma(a1)) + 0.001  # avoid 0
         c1 = F.relu6(self.c1(x))
         values = self.v(c1)
         return mu, sigma, values
@@ -50,7 +50,14 @@ class Net(nn.Module):
     def choose_action(self, s):
         self.training = False
         mu, sigma, _ = self.forward(s)
-        m = self.distribution(mu.view(1, ).data, sigma.view(1, ).data)
+        m = self.distribution(
+            mu.view(
+                1,
+            ).data,
+            sigma.view(
+                1,
+            ).data,
+        )
         return m.sample().numpy()
 
     def loss_func(self, s, a, v_t):
@@ -71,10 +78,10 @@ class Net(nn.Module):
 class Worker(mp.Process):
     def __init__(self, gnet, opt, global_ep, global_ep_r, res_queue, name):
         super(Worker, self).__init__()
-        self.name = 'w%i' % name
+        self.name = "w%i" % name
         self.g_ep, self.g_ep_r, self.res_queue = global_ep, global_ep_r, res_queue
         self.gnet, self.opt = gnet, opt
-        self.lnet = Net(N_S, N_A)           # local network
+        self.lnet = Net(N_S, N_A)  # local network
         self.env = gym.make("Pendulum-v1").unwrapped
 
     def run(self):
@@ -82,9 +89,9 @@ class Worker(mp.Process):
         while self.g_ep.value < MAX_EP:
             s = self.env.reset()
             buffer_s, buffer_a, buffer_r = [], [], []
-            ep_r = 0.
+            ep_r = 0.0
             for t in range(MAX_EP_STEP):
-                if self.name == 'w0':
+                if self.name == "w0":
                     self.env.render()
                 a = self.lnet.choose_action(v_wrap(s[None, :]))
                 s_, r, done, _ = self.env.step(a.clip(-2, 2))
@@ -93,11 +100,23 @@ class Worker(mp.Process):
                 ep_r += r
                 buffer_a.append(a)
                 buffer_s.append(s)
-                buffer_r.append((r+8.1)/8.1)    # normalize
+                buffer_r.append((r + 8.1) / 8.1)  # normalize
 
-                if total_step % UPDATE_GLOBAL_ITER == 0 or done:  # update global and assign to local net
+                if (
+                    total_step % UPDATE_GLOBAL_ITER == 0 or done
+                ):  # update global and assign to local net
                     # sync
-                    push_and_pull(self.opt, self.lnet, self.gnet, done, s_, buffer_s, buffer_a, buffer_r, GAMMA)
+                    push_and_pull(
+                        self.opt,
+                        self.lnet,
+                        self.gnet,
+                        done,
+                        s_,
+                        buffer_s,
+                        buffer_a,
+                        buffer_r,
+                        GAMMA,
+                    )
                     buffer_s, buffer_a, buffer_r = [], [], []
 
                     if done:  # done and print information
@@ -110,15 +129,20 @@ class Worker(mp.Process):
 
 
 if __name__ == "__main__":
-    gnet = Net(N_S, N_A)        # global network
-    gnet.share_memory()         # share the global parameters in multiprocessing
-    opt = SharedAdam(gnet.parameters(), lr=1e-4, betas=(0.95, 0.999))  # global optimizer
-    global_ep, global_ep_r, res_queue = mp.Value('i', 0), mp.Value('d', 0.), mp.Queue()
+    gnet = Net(N_S, N_A)  # global network
+    gnet.share_memory()  # share the global parameters in multiprocessing
+    opt = SharedAdam(
+        gnet.parameters(), lr=1e-4, betas=(0.95, 0.999)
+    )  # global optimizer
+    global_ep, global_ep_r, res_queue = mp.Value("i", 0), mp.Value("d", 0.0), mp.Queue()
 
     # parallel training
-    workers = [Worker(gnet, opt, global_ep, global_ep_r, res_queue, i) for i in range(mp.cpu_count())]
+    workers = [
+        Worker(gnet, opt, global_ep, global_ep_r, res_queue, i)
+        for i in range(mp.cpu_count())
+    ]
     [w.start() for w in workers]
-    res = []                    # record episode reward to plot
+    res = []  # record episode reward to plot
     while True:
         r = res_queue.get()
         if r is not None:
@@ -128,7 +152,8 @@ if __name__ == "__main__":
     [w.join() for w in workers]
 
     import matplotlib.pyplot as plt
+
     plt.plot(res)
-    plt.ylabel('Moving average ep reward')
-    plt.xlabel('Step')
+    plt.ylabel("Moving average ep reward")
+    plt.xlabel("Step")
     plt.show()
