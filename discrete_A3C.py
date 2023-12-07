@@ -1,13 +1,17 @@
+import gymnasium as gym
 from shared_adam import SharedAdam
-import gym
 import torch.multiprocessing as mp
 import torch.nn.functional as F
 from utils import v_wrap, set_init, push_and_pull, record
 import torch.nn as nn
 import torch
 import os
+
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+
+
 # import gymnasium as gym
+
 os.environ["OMP_NUM_THREADS"] = "1"
 
 UPDATE_GLOBAL_ITER = 5
