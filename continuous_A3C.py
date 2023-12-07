@@ -13,6 +13,7 @@ import torch.multiprocessing as mp
 from shared_adam import SharedAdam
 import gym
 import math, os
+
 os.environ["OMP_NUM_THREADS"] = "1"
 
 UPDATE_GLOBAL_ITER = 5
@@ -20,7 +21,7 @@ GAMMA = 0.9
 MAX_EP = 3000
 MAX_EP_STEP = 200
 
-env = gym.make('Pendulum-v0')
+env = gym.make("Pendulum-v1")
 N_S = env.observation_space.shape[0]
 N_A = env.action_space.shape[0]
 
@@ -74,7 +75,7 @@ class Worker(mp.Process):
         self.g_ep, self.g_ep_r, self.res_queue = global_ep, global_ep_r, res_queue
         self.gnet, self.opt = gnet, opt
         self.lnet = Net(N_S, N_A)           # local network
-        self.env = gym.make('Pendulum-v0').unwrapped
+        self.env = gym.make("Pendulum-v1").unwrapped
 
     def run(self):
         total_step = 1
