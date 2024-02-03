@@ -1,5 +1,5 @@
 #!/bin/bash
-#PBS -N A3C multicore run
+#PBS -N A3C_multicore_run
 #PBS -l walltime=1:00:00
 #PBS -l nodes=1:ppn=10
 #PBS -k oe
